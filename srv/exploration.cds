@@ -14,7 +14,7 @@ service ExplorationService {
                 mostCommonPlanetType,
                 mostLikelyAlienType,
                 numberOfPlanets,
-                baseDrakeScore as drakeEquation,
+                drakeScore as drakeEquation,
                 AlienCivilisations    : Association to ContactedAlienCivilisations on AlienCivilisations.homeGalaxy.ID = $self.ID
         }
 
@@ -36,19 +36,26 @@ service ExplorationService {
 
 define view DetailedGalaxiesView 
     as select from datamodel.Galaxies as Galaxies
+    left join datamodel.HabitableZones as Zones on Zones.starType = Galaxies.mostCommonStarType
+    left join datamodel.CompabilityScores as Scores on Scores.planetType = Galaxies.mostCommonPlanetType
+        and Scores.alienType = Galaxies.mostLikelyAlienType
     {
-        key ID,
-            name,
-            distance,
-            numberOfSolarSystems,
-            averagePlanetsPerSolar,
-            numberOfSolarSystems * averagePlanetsPerSolar as numberOfPlanets : Double,
-            case
-                when $self.numberOfPlanets > 100000000000  THEN 1
-                else 0.66
-            end as baseDrakeScore : Integer,
-            explorationReport,
-            mostCommonStarType,
-            mostCommonPlanetType,
-            mostLikelyAlienType
+        key Galaxies.ID,
+        Galaxies.name,
+        Galaxies.distance,
+        Galaxies.numberOfSolarSystems,
+        Galaxies.averagePlanetsPerSolar,
+        Galaxies.explorationReport,
+        Galaxies.mostCommonStarType,
+        Galaxies.mostCommonPlanetType,
+        Galaxies.mostLikelyAlienType,
+        Galaxies.numberOfSolarSystems * Galaxies.averagePlanetsPerSolar as numberOfPlanets : Double,
+        case
+            when Galaxies.numberOfSolarSystems * Galaxies.averagePlanetsPerSolar > 100000000000 THEN 1
+            else 0.66
+        end as baseDrakeScore : Double,
+        (Zones.percentage * Scores.percentage * case
+            when Galaxies.numberOfSolarSystems * Galaxies.averagePlanetsPerSolar > 100000000000 THEN 1
+            else 0.66
+        end * 100) as drakeScore : Double
     };
